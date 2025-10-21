@@ -3,6 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:para/utils/colors.dart';
 import 'package:para/utils/constants.dart';
 import 'package:para/widgets/custom_text.dart';
+import 'package:para/screens/table_screen.dart';
+import 'package:para/screens/dashboard_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -23,7 +25,8 @@ class CustomDrawer extends StatelessWidget {
                     padding: const EdgeInsets.all(AppConstants.paddingSmall),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusSmall),
                     ),
                     child: const FaIcon(
                       FontAwesomeIcons.s,
@@ -69,8 +72,10 @@ class CustomDrawer extends StatelessWidget {
                     padding: const EdgeInsets.all(AppConstants.paddingMedium),
                     decoration: BoxDecoration(
                       color: AppColors.background,
-                      borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                      border: Border.all(color: AppColors.greyLight.withOpacity(0.5)),
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusMedium),
+                      border: Border.all(
+                          color: AppColors.greyLight.withOpacity(0.5)),
                     ),
                     child: Row(
                       children: [
@@ -203,6 +208,18 @@ class CustomDrawer extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.pop(context);
+        // Navigate based on title
+        if (title == 'Table') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const TableScreen()),
+          );
+        } else if (title == 'Cashier') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          );
+        }
       },
       borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
       child: Container(
