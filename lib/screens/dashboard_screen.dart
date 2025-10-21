@@ -4,6 +4,7 @@ import 'package:para/utils/colors.dart';
 import 'package:para/utils/constants.dart';
 import 'package:para/widgets/custom_button.dart';
 import 'package:para/widgets/custom_text.dart';
+import 'package:para/widgets/custom_drawer.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -136,6 +137,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: Builder(builder: (context) {
+        return const CustomDrawer();
+      }),
       body: Row(
         children: [
           // Left Panel - Orders and Menu
@@ -197,10 +201,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
             ),
-            child: IconButton(
-              icon: const FaIcon(FontAwesomeIcons.bars, size: 18),
-              onPressed: () {},
-              color: AppColors.primary,
+            child: Builder(
+              builder: (context) => IconButton(
+                icon: const FaIcon(FontAwesomeIcons.bars, size: 18),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                color: AppColors.primary,
+              ),
             ),
           ),
           const SizedBox(width: AppConstants.paddingMedium),
@@ -793,7 +801,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const Spacer(),
                       CustomText.bold(
-                        text: '\$${item['price'].toStringAsFixed(2)}',
+                        text: 'P${item['price'].toStringAsFixed(2)}',
                         fontSize: AppConstants.fontLarge,
                         color: AppColors.primary,
                       ),
@@ -1089,7 +1097,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 CustomText.bold(
-                  text: '\$${item['price'].toStringAsFixed(2)}',
+                  text: 'P${item['price'].toStringAsFixed(2)}',
                   fontSize: AppConstants.fontSmall,
                   color: AppColors.primary,
                 ),
@@ -1161,7 +1169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           fontFamily: isBold ? 'Bold' : 'Regular',
         ),
         CustomText(
-          text: '\$${amount.toStringAsFixed(2)}',
+          text: 'P${amount.toStringAsFixed(2)}',
           fontSize: AppConstants.fontMedium,
           color: AppColors.textPrimary,
           fontFamily: isBold ? 'Bold' : 'Regular',
@@ -1455,7 +1463,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: AppColors.textPrimary,
                 ),
                 CustomText.regular(
-                  text: '\$${item['price'].toStringAsFixed(2)} each',
+                  text: 'P${item['price'].toStringAsFixed(2)} each',
                   fontSize: AppConstants.fontSmall,
                   color: AppColors.textSecondary,
                 ),
@@ -1479,7 +1487,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(width: AppConstants.paddingMedium),
           CustomText.bold(
-            text: '\$${(item['price'] * item['quantity']).toStringAsFixed(2)}',
+            text: 'P${(item['price'] * item['quantity']).toStringAsFixed(2)}',
             fontSize: AppConstants.fontLarge,
             color: AppColors.textPrimary,
           ),
