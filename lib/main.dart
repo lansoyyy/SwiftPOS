@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:para/screens/login_screen.dart';
 import 'package:para/utils/colors.dart';
 
 void main() {
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.white,
         fontFamily: 'Regular',
       ),
-      home: Scaffold(),
+      home: const LoginScreen(),
     );
   }
 }
