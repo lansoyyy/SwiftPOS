@@ -6,6 +6,7 @@ import 'package:para/widgets/custom_button.dart';
 import 'package:para/widgets/custom_text.dart';
 import 'package:para/screens/privacy_policy_screen.dart';
 import 'package:para/screens/terms_conditions_screen.dart';
+import 'package:para/screens/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -48,8 +49,13 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onStartShift() {
     // Handle start shift logic
     if (_selectedCashier != null && _pin.length >= 4) {
-      // Navigate to main screen or validate PIN
-      print('Starting shift for $_selectedCashier with PIN: $_pin');
+      // Navigate to dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DashboardScreen(),
+        ),
+      );
     }
   }
 
