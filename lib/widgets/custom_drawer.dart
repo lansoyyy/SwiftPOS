@@ -5,6 +5,7 @@ import 'package:para/utils/constants.dart';
 import 'package:para/widgets/custom_text.dart';
 import 'package:para/screens/table_screen.dart';
 import 'package:para/screens/dashboard_screen.dart';
+import 'package:para/screens/orders_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   final String currentRoute;
@@ -145,7 +146,7 @@ class CustomDrawer extends StatelessWidget {
                     context,
                     icon: FontAwesomeIcons.utensils,
                     title: 'Orders',
-                    isSelected: false,
+                    isSelected: currentRoute == 'orders',
                   ),
                   const SizedBox(height: AppConstants.paddingSmall),
                   const SizedBox(height: AppConstants.paddingSmall),
@@ -228,6 +229,11 @@ class CustomDrawer extends StatelessWidget {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          );
+        } else if (title == 'Orders') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const OrdersScreen()),
           );
         }
       },
