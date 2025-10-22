@@ -138,7 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: Builder(builder: (context) {
-        return const CustomDrawer();
+        return const CustomDrawer(currentRoute: 'cashier');
       }),
       body: Row(
         children: [
@@ -598,9 +598,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(width: AppConstants.paddingSmall),
               CustomText.regular(
-                text: '(40 Items)',
+                text: '(${_getTotalMenuItems()} Items)',
                 fontSize: AppConstants.fontSmall,
                 color: AppColors.textSecondary,
+              ),
+              const Spacer(),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius:
+                      BorderRadius.circular(AppConstants.radiusMedium),
+                ),
+                child: IconButton(
+                  onPressed: _showAddCategoryDialog,
+                  icon: const FaIcon(
+                    FontAwesomeIcons.plus,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  tooltip: 'Add Menu Category',
+                ),
               ),
             ],
           ),
@@ -687,7 +704,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
               ),
               child: FaIcon(
-                category['icon'],
+                FontAwesomeIcons.utensils,
                 size: 16,
                 color: isSelected ? AppColors.white : AppColors.primary,
               ),
@@ -857,27 +874,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.primary,
-                          AppColors.primaryDark,
-                        ],
-                      ),
-                      borderRadius:
-                          BorderRadius.circular(AppConstants.radiusMedium),
-                    ),
-                    child: const FaIcon(
-                      FontAwesomeIcons.receipt,
-                      size: 16,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  const SizedBox(width: AppConstants.paddingMedium),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -980,23 +976,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: _buildPaymentMethod(
                       'Credit Card',
                       FontAwesomeIcons.creditCard,
-                      Colors.red,
+                      AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: AppConstants.paddingSmall),
                   Expanded(
                     child: _buildPaymentMethod(
                       'Cash',
-                      FontAwesomeIcons.moneyBill,
-                      Colors.green,
+                      FontAwesomeIcons.wallet,
+                      AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: AppConstants.paddingSmall),
                   Expanded(
                     child: _buildPaymentMethod(
                       'GCash',
-                      FontAwesomeIcons.qrcode,
-                      AppColors.grey,
+                      FontAwesomeIcons.g,
+                      AppColors.primary,
                     ),
                   ),
                 ],
@@ -1078,7 +1074,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             child: Center(
               child: FaIcon(
-                _getCategoryIcon('Burger'),
+                FontAwesomeIcons.utensils,
                 size: 24,
                 color: AppColors.primary.withOpacity(0.7),
               ),
@@ -1547,6 +1543,178 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     });
                   },
                   backgroundColor: AppColors.success,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  int _getTotalMenuItems() {
+    return _menuItems.length;
+  }
+
+  void _showAddCategoryDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final categoryNameController = TextEditingController();
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
+          ),
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(AppConstants.paddingLarge),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius:
+                            BorderRadius.circular(AppConstants.radiusMedium),
+                      ),
+                      child: const FaIcon(
+                        FontAwesomeIcons.plus,
+                        size: 24,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.paddingMedium),
+                    const CustomText.bold(
+                      text: 'Add Menu Category',
+                      fontSize: AppConstants.fontLarge,
+                      color: AppColors.textPrimary,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () {
+                        categoryNameController.dispose();
+                        Navigator.of(context).pop();
+                      },
+                      icon: const FaIcon(
+                        FontAwesomeIcons.xmark,
+                        color: AppColors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppConstants.paddingLarge),
+
+                // Category Name Input
+                const CustomText.medium(
+                  text: 'Category Name',
+                  color: AppColors.textPrimary,
+                ),
+                const SizedBox(height: AppConstants.paddingSmall),
+                TextField(
+                  controller: categoryNameController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter category name (e.g., Desserts, Salads)',
+                    border: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusMedium),
+                      borderSide: BorderSide(color: AppColors.greyLight),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusMedium),
+                      borderSide: BorderSide(color: AppColors.greyLight),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusMedium),
+                      borderSide: BorderSide(color: AppColors.primary),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.all(AppConstants.paddingMedium),
+                  ),
+                ),
+                const SizedBox(height: AppConstants.paddingLarge),
+
+                // Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          categoryNameController.dispose();
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.white,
+                          foregroundColor: AppColors.textSecondary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppConstants.paddingLarge,
+                            vertical: AppConstants.paddingMedium,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                AppConstants.radiusMedium),
+                            side: BorderSide(color: AppColors.greyLight),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const CustomText.medium(
+                          text: 'Cancel',
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.paddingMedium),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (categoryNameController.text.trim().isNotEmpty) {
+                            setState(() {
+                              _categories.add({
+                                'name': categoryNameController.text.trim(),
+                                'icon': FontAwesomeIcons.utensils,
+                                'count': 0,
+                              });
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Category "${categoryNameController.text.trim()}" added successfully!'),
+                                backgroundColor: AppColors.success,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            categoryNameController.clear();
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppConstants.paddingLarge,
+                            vertical: AppConstants.paddingMedium,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                AppConstants.radiusMedium),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const CustomText.medium(
+                          text: 'Add Category',
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

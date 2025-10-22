@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:para/utils/colors.dart';
 import 'package:para/utils/constants.dart';
 import 'package:para/widgets/custom_drawer.dart';
 import 'package:para/widgets/custom_text.dart';
+import 'package:para/widgets/custom_button.dart';
+import '../models/reservation_model.dart';
+import '../services/reservation_service.dart';
+import 'reservation_screen.dart';
+import 'reservation_management_screen.dart';
 
 class TableScreen extends StatefulWidget {
   const TableScreen({super.key});
@@ -16,35 +22,117 @@ class _TableScreenState extends State<TableScreen> {
   int _currentPage = 1;
   final int _totalPages = 10;
   String _selectedFilter = 'All Table';
+  List<Map<String, dynamic>> _tables = [];
+  List<ReservationModel> _reservations = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> _tables = [
-    {'number': 1, 'status': 'Available', 'guest': 'Guest'},
-    {'number': 2, 'status': 'Available', 'guest': 'Guest'},
-    {'number': 3, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 4, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 5, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 6, 'status': 'Available', 'guest': 'Guest'},
-    {'number': 7, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 8, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 9, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 10, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 11, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 12, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 13, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 14, 'status': 'Available', 'guest': 'Guest'},
-    {'number': 15, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 16, 'status': 'Available', 'guest': 'Guest'},
-    {'number': 17, 'status': 'Available', 'guest': 'Guest'},
-    {'number': 18, 'status': 'Available', 'guest': 'Guest'},
-    {'number': 19, 'status': 'Used', 'guest': 'Guest'},
-    {'number': 20, 'status': 'Used', 'guest': 'Guest'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _initializeTables();
+    _loadReservations();
+  }
+
+  void _initializeTables() {
+    _tables = List.generate(20, (index) {
+      final tableNumber = index + 1;
+      return {
+        'number': tableNumber,
+        'status': 'Available',
+        'guest': 'Guest',
+        'reservation': null as ReservationModel?,
+      };
+    });
+  }
+
+  Future<void> _loadReservations() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final reservations =
+          await ReservationService.instance.getTodayReservations();
+      setState(() {
+        _reservations = reservations;
+        _updateTableStatuses();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading reservations: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _updateTableStatuses() {
+    // Reset all tables to available
+    for (var table in _tables) {
+      table['status'] = 'Available';
+      table['reservation'] = null;
+    }
+
+    // Update table statuses based on reservations
+    final now = DateTime.now();
+    for (final reservation in _reservations) {
+      final tableIndex =
+          _tables.indexWhere((t) => t['number'] == reservation.tableNumber);
+      if (tableIndex != -1) {
+        final reservationDateTime = DateTime(
+          reservation.reservationDate.year,
+          reservation.reservationDate.month,
+          reservation.reservationDate.day,
+          reservation.reservationTime.hour,
+          reservation.reservationTime.minute,
+        );
+
+        // Check if reservation is active
+        if (reservation.status.isActive) {
+          _tables[tableIndex]['status'] =
+              _getTableStatusFromReservation(reservation, reservationDateTime);
+          _tables[tableIndex]['reservation'] = reservation;
+        }
+        // Check if reservation is recently completed (within last 2 hours)
+        else if (reservation.status == ReservationStatus.completed &&
+            now.difference(reservationDateTime).inHours < 2) {
+          _tables[tableIndex]['status'] = 'Recently Used';
+          _tables[tableIndex]['reservation'] = reservation;
+        }
+      }
+    }
+  }
+
+  String _getTableStatusFromReservation(
+      ReservationModel reservation, DateTime reservationDateTime) {
+    final now = DateTime.now();
+    final difference = reservationDateTime.difference(now);
+
+    if (reservation.status == ReservationStatus.seated) {
+      return 'Occupied';
+    } else if (reservation.status == ReservationStatus.waiting) {
+      return 'Waiting';
+    } else if (difference.inMinutes > 30) {
+      return 'Reserved';
+    } else if (difference.inMinutes > 0) {
+      return 'Arriving Soon';
+    } else if (difference.inMinutes > -30) {
+      return 'Expected';
+    } else {
+      return 'Reserved';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const CustomDrawer(),
+      drawer: const CustomDrawer(currentRoute: 'table'),
       body: Column(
         children: [
           _buildTopBar(),
@@ -178,9 +266,22 @@ class _TableScreenState extends State<TableScreen> {
             ),
           ),
           const SizedBox(width: AppConstants.paddingMedium),
-          // Close Order Button
-          ElevatedButton(
-            onPressed: () {},
+          // Reservation Management Button
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReservationManagementScreen(),
+                ),
+              );
+            },
+            icon: const FaIcon(FontAwesomeIcons.calendarCheck, size: 16),
+            label: const CustomText.bold(
+              text: 'Reservations',
+              fontSize: AppConstants.fontMedium,
+              color: AppColors.white,
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.white,
@@ -192,11 +293,6 @@ class _TableScreenState extends State<TableScreen> {
                 borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
               ),
               elevation: 0,
-            ),
-            child: const CustomText.bold(
-              text: 'Close Order',
-              fontSize: AppConstants.fontMedium,
-              color: AppColors.white,
             ),
           ),
         ],
@@ -228,7 +324,7 @@ class _TableScreenState extends State<TableScreen> {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
-        childAspectRatio: 1.45,
+        childAspectRatio: 1.2,
         crossAxisSpacing: AppConstants.paddingMedium,
         mainAxisSpacing: AppConstants.paddingMedium,
       ),
@@ -240,12 +336,18 @@ class _TableScreenState extends State<TableScreen> {
   }
 
   Widget _buildTableCard(Map<String, dynamic> table) {
-    final isAvailable = table['status'] == 'Available';
+    final status = table['status'] as String;
+    final reservation = table['reservation'] as ReservationModel?;
+    final isAvailable = status == 'Available';
+    final statusColor = _getTableStatusColor(status);
+    final statusIcon = _getTableStatusIcon(status);
+
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          table['status'] = isAvailable ? 'Used' : 'Available';
-        });
+      onTap: () => _showTableOptions(context, table, reservation),
+      onLongPress: () {
+        if (isAvailable) {
+          _navigateToReservation(table['number']);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -256,14 +358,14 @@ class _TableScreenState extends State<TableScreen> {
           border: Border.all(
             color: isAvailable
                 ? AppColors.primary.withOpacity(0.3)
-                : AppColors.greyLight.withOpacity(0.5),
+                : statusColor.withOpacity(0.5),
             width: isAvailable ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
               color: isAvailable
                   ? AppColors.primary.withOpacity(0.15)
-                  : Colors.black.withOpacity(0.08),
+                  : statusColor.withOpacity(0.08),
               blurRadius: isAvailable ? 15 : 10,
               offset: const Offset(0, 4),
             ),
@@ -299,8 +401,8 @@ class _TableScreenState extends State<TableScreen> {
                           AppColors.primary.withOpacity(0.02),
                         ]
                       : [
-                          AppColors.greyLight.withOpacity(0.3),
-                          AppColors.greyLight.withOpacity(0.1),
+                          statusColor.withOpacity(0.3),
+                          statusColor.withOpacity(0.1),
                         ],
                 ),
                 borderRadius: const BorderRadius.only(
@@ -317,13 +419,13 @@ class _TableScreenState extends State<TableScreen> {
                     decoration: BoxDecoration(
                       color: isAvailable
                           ? AppColors.primary.withOpacity(0.15)
-                          : AppColors.greyLight.withOpacity(0.5),
+                          : statusColor.withOpacity(0.5),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
                           color: isAvailable
                               ? AppColors.primary.withOpacity(0.2)
-                              : Colors.black.withOpacity(0.1),
+                              : statusColor.withOpacity(0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -332,7 +434,7 @@ class _TableScreenState extends State<TableScreen> {
                     child: FaIcon(
                       FontAwesomeIcons.chair,
                       size: 18,
-                      color: isAvailable ? AppColors.primary : AppColors.grey,
+                      color: isAvailable ? AppColors.primary : statusColor,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -353,50 +455,343 @@ class _TableScreenState extends State<TableScreen> {
               width: double.infinity,
               margin: const EdgeInsets.all(AppConstants.paddingMedium),
               padding: const EdgeInsets.symmetric(
-                vertical: 10,
+                vertical: 8,
                 horizontal: AppConstants.paddingSmall,
               ),
               decoration: BoxDecoration(
-                color: isAvailable ? AppColors.primary : AppColors.greyLight,
+                color: statusColor,
                 borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
                 boxShadow: [
                   BoxShadow(
-                    color: isAvailable
-                        ? AppColors.primary.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.1),
+                    color: statusColor.withOpacity(0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Column(
                 children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: FaIcon(
-                      isAvailable
-                          ? FontAwesomeIcons.checkCircle
-                          : FontAwesomeIcons.clock,
-                      key: ValueKey(isAvailable),
-                      size: 14,
-                      color: isAvailable
-                          ? AppColors.white
-                          : AppColors.textSecondary,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FaIcon(
+                        statusIcon,
+                        size: 12,
+                        color: AppColors.white,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: CustomText.bold(
+                          text: status,
+                          fontSize: AppConstants.fontSmall,
+                          color: AppColors.white,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (reservation != null) ...[
+                    const SizedBox(height: 4),
+                    CustomText.medium(
+                      text: reservation.customerName,
+                      fontSize: AppConstants.fontSmall - 2,
+                      color: AppColors.white,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  CustomText.bold(
-                    text: table['status'],
-                    fontSize: AppConstants.fontSmall,
-                    color:
-                        isAvailable ? AppColors.white : AppColors.textSecondary,
-                  ),
+                    if (reservation.numberOfGuests > 0)
+                      CustomText.medium(
+                        text: '${reservation.numberOfGuests} guests',
+                        fontSize: AppConstants.fontSmall - 2,
+                        color: AppColors.white.withOpacity(0.9),
+                      ),
+                  ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Color _getTableStatusColor(String status) {
+    switch (status) {
+      case 'Available':
+        return AppColors.primary;
+      case 'Occupied':
+        return AppColors.error;
+      case 'Reserved':
+      case 'Arriving Soon':
+      case 'Expected':
+        return AppColors.warning;
+      case 'Waiting':
+        return AppColors.info;
+      case 'Recently Used':
+        return AppColors.grey;
+      default:
+        return AppColors.greyLight;
+    }
+  }
+
+  IconData _getTableStatusIcon(String status) {
+    switch (status) {
+      case 'Available':
+        return FontAwesomeIcons.checkCircle;
+      case 'Occupied':
+        return FontAwesomeIcons.userCheck;
+      case 'Reserved':
+        return FontAwesomeIcons.calendarCheck;
+      case 'Arriving Soon':
+        return FontAwesomeIcons.personRunning;
+      case 'Expected':
+        return FontAwesomeIcons.clock;
+      case 'Waiting':
+        return FontAwesomeIcons.hourglassHalf;
+      case 'Recently Used':
+        return FontAwesomeIcons.history;
+      default:
+        return FontAwesomeIcons.questionCircle;
+    }
+  }
+
+  void _navigateToReservation(int tableNumber) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ReservationScreen(initialTableNumber: tableNumber),
+      ),
+    ).then((_) => _loadReservations());
+  }
+
+  void _showTableOptions(BuildContext context, Map<String, dynamic> table,
+      ReservationModel? reservation) {
+    final isAvailable = table['status'] == 'Available';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(AppConstants.radiusLarge),
+          topRight: Radius.circular(AppConstants.radiusLarge),
+        ),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(AppConstants.paddingLarge),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle Bar
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.greyLight,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: AppConstants.paddingLarge),
+
+            // Table Info
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isAvailable
+                        ? AppColors.primary.withOpacity(0.1)
+                        : _getTableStatusColor(table['status'])
+                            .withOpacity(0.5),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusMedium),
+                  ),
+                  child: FaIcon(
+                    FontAwesomeIcons.chair,
+                    size: 20,
+                    color: isAvailable
+                        ? AppColors.primary
+                        : _getTableStatusColor(table['status']),
+                  ),
+                ),
+                const SizedBox(width: AppConstants.paddingMedium),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomText.bold(
+                        text: 'Table ${table['number']}',
+                        fontSize: AppConstants.fontLarge,
+                        color: AppColors.textPrimary,
+                      ),
+                      CustomText.medium(
+                        text: 'Status: ${table['status']}',
+                        fontSize: AppConstants.fontMedium,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // Reservation Info
+            if (reservation != null) ...[
+              const SizedBox(height: AppConstants.paddingLarge),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppConstants.paddingMedium),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius:
+                      BorderRadius.circular(AppConstants.radiusMedium),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText.bold(
+                      text: 'Reservation Details',
+                      fontSize: AppConstants.fontMedium,
+                    ),
+                    const SizedBox(height: AppConstants.paddingSmall),
+                    _buildReservationDetailRow(
+                        'Customer', reservation.customerName),
+                    _buildReservationDetailRow(
+                        'Guests', '${reservation.numberOfGuests}'),
+                    _buildReservationDetailRow(
+                        'Time', reservation.reservationTime.format(context)),
+                    _buildReservationDetailRow(
+                        'Status', reservation.status.displayName),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: AppConstants.paddingLarge),
+
+            // Action Buttons
+            if (isAvailable) ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _navigateToReservation(table['number']);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.paddingLarge,
+                      vertical: AppConstants.paddingMedium,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusMedium),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const CustomText.bold(
+                    text: 'Make Reservation',
+                    fontSize: AppConstants.fontMedium,
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+            ] else if (reservation != null) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Navigate to reservation details
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.white,
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.paddingLarge,
+                          vertical: AppConstants.paddingMedium,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppConstants.radiusMedium),
+                          side: BorderSide(color: AppColors.primary),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const CustomText.bold(
+                        text: 'View Details',
+                        fontSize: AppConstants.fontMedium,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppConstants.paddingMedium),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Navigate to reservation management
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const ReservationManagementScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.paddingLarge,
+                          vertical: AppConstants.paddingMedium,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppConstants.radiusMedium),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const CustomText.bold(
+                        text: 'Update Status',
+                        fontSize: AppConstants.fontMedium,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            const SizedBox(height: AppConstants.paddingLarge),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReservationDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppConstants.paddingSmall / 2),
+      child: Row(
+        children: [
+          CustomText.medium(
+            text: '$label:',
+            color: AppColors.textSecondary,
+            fontSize: AppConstants.fontSmall,
+          ),
+          const SizedBox(width: AppConstants.paddingSmall),
+          CustomText.medium(
+            text: value,
+            color: AppColors.textPrimary,
+            fontSize: AppConstants.fontSmall,
+          ),
+        ],
       ),
     );
   }
@@ -533,156 +928,6 @@ class _TableScreenState extends State<TableScreen> {
           color: onPressed != null ? AppColors.textPrimary : AppColors.grey,
         ),
         onPressed: onPressed,
-      ),
-    );
-  }
-
-  void _showTableOptions(BuildContext context, Map<String, dynamic> table) {
-    final isAvailable = table['status'] == 'Available';
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppConstants.radiusLarge),
-          topRight: Radius.circular(AppConstants.radiusLarge),
-        ),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(AppConstants.paddingLarge),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle Bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.greyLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: AppConstants.paddingLarge),
-            // Table Info
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isAvailable
-                        ? AppColors.primary.withOpacity(0.1)
-                        : AppColors.greyLight.withOpacity(0.5),
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.radiusMedium),
-                  ),
-                  child: FaIcon(
-                    FontAwesomeIcons.chair,
-                    size: 20,
-                    color: isAvailable ? AppColors.primary : AppColors.grey,
-                  ),
-                ),
-                const SizedBox(width: AppConstants.paddingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CustomText.bold(
-                        text: 'Table ${table['number']}',
-                        fontSize: AppConstants.fontLarge,
-                        color: AppColors.textPrimary,
-                      ),
-                      CustomText.regular(
-                        text: 'Status: ${table['status']}',
-                        fontSize: AppConstants.fontMedium,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.paddingLarge),
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: _buildOptionButton(
-                    icon: isAvailable
-                        ? FontAwesomeIcons.userMinus
-                        : FontAwesomeIcons.userPlus,
-                    label: isAvailable ? 'Mark as Used' : 'Mark as Available',
-                    color: isAvailable ? AppColors.warning : AppColors.success,
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        table['status'] = isAvailable ? 'Used' : 'Available';
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppConstants.paddingMedium),
-                Expanded(
-                  child: _buildOptionButton(
-                    icon: FontAwesomeIcons.pencil,
-                    label: 'Edit Details',
-                    color: AppColors.primary,
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // TODO: Implement edit functionality
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.paddingMedium),
-            SizedBox(
-              width: double.infinity,
-              child: _buildOptionButton(
-                icon: FontAwesomeIcons.circleInfo,
-                label: 'View Details',
-                color: AppColors.info,
-                onPressed: () {
-                  Navigator.pop(context);
-                  // TODO: Implement view details functionality
-                },
-              ),
-            ),
-            const SizedBox(height: AppConstants.paddingLarge),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.1),
-        foregroundColor: color,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.paddingMedium,
-          vertical: AppConstants.paddingMedium,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-        ),
-        elevation: 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FaIcon(icon, size: 16),
-          const SizedBox(width: AppConstants.paddingSmall),
-          CustomText.medium(
-            text: label,
-            fontSize: AppConstants.fontSmall,
-          ),
-        ],
       ),
     );
   }

@@ -7,7 +7,9 @@ import 'package:para/screens/table_screen.dart';
 import 'package:para/screens/dashboard_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
-  const CustomDrawer({super.key});
+  final String currentRoute;
+
+  const CustomDrawer({super.key, this.currentRoute = 'cashier'});
 
   @override
   Widget build(BuildContext context) {
@@ -129,13 +131,28 @@ class CustomDrawer extends StatelessWidget {
                     context,
                     icon: FontAwesomeIcons.cashRegister,
                     title: 'Cashier',
-                    isSelected: true,
+                    isSelected: currentRoute == 'cashier',
                   ),
                   const SizedBox(height: AppConstants.paddingSmall),
                   _buildMenuItem(
                     context,
-                    icon: FontAwesomeIcons.tableList,
+                    icon: FontAwesomeIcons.bookmark,
                     title: 'Table',
+                    isSelected: currentRoute == 'table',
+                  ),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  _buildMenuItem(
+                    context,
+                    icon: FontAwesomeIcons.utensils,
+                    title: 'Orders',
+                    isSelected: false,
+                  ),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  _buildMenuItem(
+                    context,
+                    icon: FontAwesomeIcons.bars,
+                    title: 'Menu',
                     isSelected: false,
                   ),
                   const SizedBox(height: AppConstants.paddingSmall),
@@ -150,13 +167,6 @@ class CustomDrawer extends StatelessWidget {
                     context,
                     icon: FontAwesomeIcons.clockRotateLeft,
                     title: 'History',
-                    isSelected: false,
-                  ),
-                  const SizedBox(height: AppConstants.paddingSmall),
-                  _buildMenuItem(
-                    context,
-                    icon: FontAwesomeIcons.boxesStacked,
-                    title: 'Supply',
                     isSelected: false,
                   ),
                 ],
