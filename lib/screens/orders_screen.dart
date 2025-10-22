@@ -391,7 +391,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 Expanded(
                     flex: 1,
                     child: CustomText.bold(
-                        text: 'Customer', fontSize: AppConstants.fontSmall)),
+                        text: 'Cashier', fontSize: AppConstants.fontSmall)),
                 Expanded(
                     flex: 1,
                     child: CustomText.bold(
@@ -468,14 +468,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CustomText.medium(
-                  text: order['customer'],
+                  text: order['cashier'],
                   fontSize: AppConstants.fontSmall,
                   color: AppColors.textPrimary,
-                ),
-                CustomText.regular(
-                  text: order['cashier'],
-                  fontSize: AppConstants.fontSmall - 2,
-                  color: AppColors.textSecondary,
                 ),
               ],
             ),
@@ -673,7 +668,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Customer', order['customer']),
                     _buildDetailRow('Cashier', order['cashier']),
                     _buildDetailRow('Payment Method', order['paymentMethod']),
                     _buildDetailRow(
