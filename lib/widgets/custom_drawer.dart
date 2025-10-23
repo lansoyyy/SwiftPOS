@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:para/screens/login_screen.dart';
 import 'package:para/utils/colors.dart';
 import 'package:para/utils/constants.dart';
 import 'package:para/widgets/custom_text.dart';
+import 'package:para/widgets/custom_button.dart';
 import 'package:para/screens/table_screen.dart';
 import 'package:para/screens/dashboard_screen.dart';
 import 'package:para/screens/orders_screen.dart';
@@ -181,7 +183,7 @@ class CustomDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(AppConstants.paddingLarge),
               child: InkWell(
                 onTap: () {
-                  // TODO: Implement logout
+                  _showLogoutConfirmationDialog(context);
                 },
                 borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
                 child: Container(
@@ -281,6 +283,96 @@ class CustomDrawer extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
+          ),
+          child: Container(
+            width: 500,
+            padding: const EdgeInsets.all(AppConstants.paddingLarge),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Warning Icon
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const FaIcon(
+                    FontAwesomeIcons.rightFromBracket,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.paddingLarge),
+                // Title
+                const CustomText.bold(
+                  text: 'Logout Confirmation',
+                  fontSize: AppConstants.fontHeading,
+                  color: AppColors.textPrimary,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppConstants.paddingMedium),
+                // Message
+                const CustomText.regular(
+                  text: 'Are you sure you want to logout from SwiftPOS?',
+                  fontSize: AppConstants.fontMedium,
+                  color: AppColors.textSecondary,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppConstants.paddingSmall),
+                const CustomText.regular(
+                  text: 'Any unsaved data will be lost.',
+                  fontSize: AppConstants.fontSmall,
+                  color: AppColors.textHint,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppConstants.paddingLarge),
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Cancel',
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        isOutlined: true,
+                        backgroundColor: AppColors.grey,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.paddingMedium),
+                    Expanded(
+                      child: CustomButton(
+                        text: 'Logout',
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                            (Route<dynamic> route) => false,
+                          );
+                        },
+                        backgroundColor: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
