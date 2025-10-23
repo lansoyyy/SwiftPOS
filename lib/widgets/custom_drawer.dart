@@ -8,6 +8,7 @@ import 'package:para/screens/dashboard_screen.dart';
 import 'package:para/screens/orders_screen.dart';
 import 'package:para/screens/menu_screen.dart';
 import 'package:para/screens/reports_screen.dart';
+import 'package:para/screens/history_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   final String currentRoute;
@@ -170,7 +171,7 @@ class CustomDrawer extends StatelessWidget {
                     context,
                     icon: FontAwesomeIcons.clockRotateLeft,
                     title: 'History',
-                    isSelected: false,
+                    isSelected: currentRoute == 'history',
                   ),
                 ],
               ),
@@ -246,6 +247,11 @@ class CustomDrawer extends StatelessWidget {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const ReportsScreen()),
+          );
+        } else if (title == 'History') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HistoryScreen()),
           );
         }
       },
