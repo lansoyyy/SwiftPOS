@@ -484,7 +484,11 @@ class _MenuScreenState extends State<MenuScreen> {
           // Add New Item Button
           ElevatedButton.icon(
             onPressed: _showAddItemDialog,
-            icon: const FaIcon(FontAwesomeIcons.plus, size: 16),
+            icon: const FaIcon(
+              FontAwesomeIcons.plus,
+              size: 16,
+              color: Colors.white,
+            ),
             label: const CustomText.bold(
               text: 'Add Item',
               fontSize: AppConstants.fontMedium,
@@ -637,9 +641,10 @@ class _MenuScreenState extends State<MenuScreen> {
                       borderRadius:
                           BorderRadius.circular(AppConstants.radiusSmall),
                     ),
-                    child: Text(
-                      category.icon,
-                      style: const TextStyle(fontSize: 16),
+                    child: FaIcon(
+                      FontAwesomeIcons.utensils,
+                      size: 16,
+                      color: isSelected ? AppColors.white : Colors.grey[400],
                     ),
                   ),
                   const SizedBox(width: AppConstants.paddingSmall),
@@ -1017,7 +1022,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             _itemDescriptionController,
                             'Enter item description'),
                         _buildTextField(
-                            'Price (₱)', _itemPriceController, '0.00',
+                            'Price (P)', _itemPriceController, '0.00',
                             isNumber: true),
                       ]),
 
@@ -1201,9 +1206,6 @@ class _MenuScreenState extends State<MenuScreen> {
                     value: category.id,
                     child: Row(
                       children: [
-                        Text(category.icon,
-                            style: const TextStyle(fontSize: 20)),
-                        const SizedBox(width: AppConstants.paddingSmall),
                         CustomText.medium(text: category.name),
                       ],
                     ),

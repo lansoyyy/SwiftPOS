@@ -78,7 +78,11 @@ class CustomButton extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: AppConstants.iconMedium),
+          Icon(
+            icon,
+            size: AppConstants.iconMedium,
+            color: Colors.white,
+          ),
           const SizedBox(width: AppConstants.paddingSmall),
           Text(
             text,

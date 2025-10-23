@@ -7,7 +7,7 @@ import 'package:para/screens/table_screen.dart';
 import 'package:para/screens/dashboard_screen.dart';
 import 'package:para/screens/orders_screen.dart';
 import 'package:para/screens/menu_screen.dart';
-import 'package:para/screens/menu_screen.dart';
+import 'package:para/screens/reports_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   final String currentRoute;
@@ -163,7 +163,7 @@ class CustomDrawer extends StatelessWidget {
                     context,
                     icon: FontAwesomeIcons.chartLine,
                     title: 'Report',
-                    isSelected: false,
+                    isSelected: currentRoute == 'reports',
                   ),
                   const SizedBox(height: AppConstants.paddingSmall),
                   _buildMenuItem(
@@ -241,6 +241,11 @@ class CustomDrawer extends StatelessWidget {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const MenuScreen()),
+          );
+        } else if (title == 'Report') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const ReportsScreen()),
           );
         }
       },
