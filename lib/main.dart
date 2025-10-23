@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.white,
         fontFamily: 'Regular',
       ),
-      home: const DashboardScreen(),
+      home: const LoginScreen(),
     );
   }
 }

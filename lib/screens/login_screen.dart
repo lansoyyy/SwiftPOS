@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:para/utils/colors.dart';
 import 'package:para/utils/constants.dart';
@@ -15,20 +16,73 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with TickerProviderStateMixin {
   String _pin = '';
   String? _selectedCashier;
   bool _isDropdownExpanded = false;
+  bool _isShifting = false;
+
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   final List<Map<String, String>> _cashiers = [
-    {'name': 'Brolead', 'time': '10:00 Am - 22:00 Pm', 'image': 'placeholder'},
-    {'name': 'John Doe', 'time': '08:00 Am - 20:00 Pm', 'image': 'placeholder'},
+    {
+      'name': 'Brolead',
+      'time': '10:00 Am - 22:00 Pm',
+      'image': 'placeholder',
+      'color': '#FF6B2D'
+    },
+    {
+      'name': 'John Doe',
+      'time': '08:00 Am - 20:00 Pm',
+      'image': 'placeholder',
+      'color': '#4CAF50'
+    },
     {
       'name': 'Jane Smith',
       'time': '12:00 Pm - 23:00 Pm',
-      'image': 'placeholder'
+      'image': 'placeholder',
+      'color': '#2196F3'
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+        CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+
+    _fadeController.forward();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _slideController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
 
   void _onNumberPressed(String number) {
     if (_pin.length < 6) {
@@ -46,16 +100,34 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _onStartShift() {
+  void _onStartShift() async {
     // Handle start shift logic
     if (_selectedCashier != null && _pin.length >= 4) {
+      setState(() {
+        _isShifting = true;
+      });
+
+      // Simulate authentication delay
+      await Future.delayed(const Duration(milliseconds: 1500));
+
       // Navigate to dashboard
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const DashboardScreen(),
-        ),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const DashboardScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 500),
+          ),
+        );
+      }
     }
   }
 
@@ -85,180 +157,240 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildBrandingPanel() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            AppColors.primaryDark,
-          ],
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary,
+              AppColors.primaryDark,
+            ],
+          ),
         ),
-      ),
-      child: Stack(
-        children: [
-          // Decorative circles
-          Positioned(
-            right: -100,
-            bottom: -100,
-            child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+        child: Stack(
+          children: [
+            // Animated decorative elements
+            Positioned(
+              right: -100,
+              bottom: -100,
+              child: AnimatedContainer(
+                duration: const Duration(seconds: 3),
+                width: 400,
+                height: 400,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.08),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            right: 50,
-            bottom: 200,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+            Positioned(
+              right: 50,
+              bottom: 200,
+              child: AnimatedContainer(
+                duration: const Duration(seconds: 4),
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.05),
+                ),
               ),
             ),
-          ),
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(AppConstants.paddingExtraLarge * 2),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Logo
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppConstants.paddingSmall),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(AppConstants.radiusSmall),
-                      ),
-                      child: const FaIcon(
-                        FontAwesomeIcons.s,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                // Main heading
-                const CustomText(
-                  text: 'Transform Your\nBusiness with',
-                  fontSize: 48,
-                  fontFamily: 'Bold',
-                  color: AppColors.white,
-                  maxLines: 2,
-                ),
-                const SizedBox(height: AppConstants.paddingMedium),
-                Row(
-                  children: [
-                    const FaIcon(
-                      FontAwesomeIcons.s,
-                      color: AppColors.white,
-                      size: 32,
-                    ),
-                    const SizedBox(width: AppConstants.paddingSmall),
-                    const CustomText(
-                      text: 'SwiftPOS',
-                      fontSize: 48,
-                      fontFamily: 'Bold',
-                      color: AppColors.white,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppConstants.paddingExtraLarge * 2),
-                // Image mockup
-                Center(
-                  child: Container(
-                    width: 400,
-                    height: 250,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppConstants.radiusLarge),
-                    ),
-                    child: Stack(
-                      children: [
-                        // Placeholder for person image
-                        Positioned(
-                          left: 20,
-                          top: 20,
-                          child: Container(
-                            width: 180,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(
-                                  AppConstants.radiusMedium),
-                            ),
-                            child: const Center(
-                              child: FaIcon(
-                                FontAwesomeIcons.user,
-                                size: 80,
-                                color: AppColors.white,
-                              ),
-                            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingExtraLarge * 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Main heading with staggered animation
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 600),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 20 * (1 - value)),
+                          child: const CustomText(
+                            text: 'Transform Your\nBusiness with',
+                            fontSize: 52,
+                            fontFamily: 'Bold',
+                            color: AppColors.white,
+                            maxLines: 2,
                           ),
                         ),
-                        // Placeholder for POS screen
-                        Positioned(
-                          right: 20,
-                          bottom: 20,
-                          child: Container(
-                            width: 200,
-                            height: 150,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(
-                                  AppConstants.radiusSmall),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(
-                                  AppConstants.paddingSmall),
-                              child: Column(
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppConstants.paddingMedium),
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 800),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 20 * (1 - value)),
+                          child: const CustomText(
+                            text: 'SwiftPOS',
+                            fontSize: 56,
+                            fontFamily: 'Bold',
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppConstants.paddingExtraLarge * 2),
+                  // Enhanced mockup
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 1000),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 30 * (1 - value)),
+                          child: Center(
+                            child: Container(
+                              width: 420,
+                              height: 280,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(
+                                    AppConstants.radiusLarge),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
                                 children: [
-                                  Container(
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(2),
+                                  // Person illustration
+                                  Positioned(
+                                    left: 30,
+                                    top: 30,
+                                    child: Container(
+                                      width: 180,
+                                      height: 220,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(
+                                            AppConstants.radiusMedium),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 80,
+                                            height: 80,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Colors.white.withOpacity(0.2),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Center(
+                                              child: const FaIcon(
+                                                FontAwesomeIcons.userTie,
+                                                size: 40,
+                                                color: AppColors.white,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Container(
+                                            width: 100,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Colors.white.withOpacity(0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            width: 80,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white
+                                                  .withOpacity(0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Expanded(
-                                    child: GridView.builder(
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 4,
-                                        mainAxisSpacing: 4,
-                                        crossAxisSpacing: 4,
-                                      ),
-                                      itemCount: 12,
-                                      itemBuilder: (context, index) {
-                                        return Container(
-                                          decoration: BoxDecoration(
-                                            color: AppColors.background,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                  // POS screen
+                                  Positioned(
+                                    right: 30,
+                                    bottom: 30,
+                                    child: Container(
+                                      width: 220,
+                                      height: 170,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(
+                                            AppConstants.radiusMedium),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.2),
+                                            blurRadius: 20,
+                                            offset: const Offset(0, 10),
                                           ),
-                                        );
-                                      },
+                                        ],
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              height: 6,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                borderRadius:
+                                                    BorderRadius.circular(3),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Expanded(
+                                              child: GridView.builder(
+                                                physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                gridDelegate:
+                                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount: 4,
+                                                  mainAxisSpacing: 6,
+                                                  crossAxisSpacing: 6,
+                                                ),
+                                                itemCount: 16,
+                                                itemBuilder: (context, index) {
+                                                  return Container(
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          AppColors.background,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -266,200 +398,394 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                ),
-                const Spacer(),
-                // Footer text
-                const CustomText(
-                  text:
-                      'Your journey to faster transactions and smoother operations starts here.',
-                  fontSize: AppConstants.fontMedium,
-                  fontFamily: 'Regular',
-                  color: AppColors.white,
-                  maxLines: 2,
-                ),
-              ],
+                  const Spacer(),
+                  // Footer text with animation
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 1200),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 20 * (1 - value)),
+                          child: const CustomText(
+                            text:
+                                'Your journey to faster transactions and smoother operations starts here.',
+                            fontSize: AppConstants.fontMedium + 2,
+                            fontFamily: 'Regular',
+                            color: AppColors.white,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildLoginPanel() {
-    return Container(
-      color: AppColors.white,
-      child: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.all(AppConstants.paddingExtraLarge * 2),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Logo
-                    Container(
-                      padding: const EdgeInsets.all(AppConstants.paddingMedium),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius:
-                            BorderRadius.circular(AppConstants.radiusMedium),
+    return SlideTransition(
+      position: _slideAnimation,
+      child: Container(
+        color: AppColors.white,
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.all(AppConstants.paddingExtraLarge * 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Logo with animation
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 600),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Transform.scale(
+                            scale: value,
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppColors.primary,
+                                    AppColors.primaryDark,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                    AppConstants.radiusLarge),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: const FaIcon(
+                                FontAwesomeIcons.s,
+                                color: AppColors.white,
+                                size: 36,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      child: const FaIcon(
-                        FontAwesomeIcons.s,
-                        color: AppColors.white,
-                        size: 32,
+                      const SizedBox(height: AppConstants.paddingLarge),
+                      // Title with animation
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 800),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: const CustomText.bold(
+                                text: 'Cashier Login',
+                                fontSize: AppConstants.fontTitle + 4,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                    const SizedBox(height: AppConstants.paddingLarge),
-                    // Title
-                    const CustomText.bold(
-                      text: 'Cashier Login',
-                      fontSize: AppConstants.fontTitle,
-                      color: AppColors.textPrimary,
-                    ),
-                    const SizedBox(height: AppConstants.paddingSmall),
-                    // Subtitle
-                    const CustomText.regular(
-                      text:
-                          'Handle transactions effortlessly with the SwiftPOS cashier system.',
-                      fontSize: AppConstants.fontSmall,
-                      color: AppColors.textSecondary,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppConstants.paddingExtraLarge),
-                    // Cashier Dropdown
-                    _buildCashierDropdown(),
-                    const SizedBox(height: AppConstants.paddingLarge),
+                      const SizedBox(height: AppConstants.paddingSmall),
+                      // Subtitle with animation
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 1000),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: const CustomText.regular(
+                                text:
+                                    'Handle transactions effortlessly with the SwiftPOS cashier system.',
+                                fontSize: AppConstants.fontSmall + 2,
+                                color: AppColors.textSecondary,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: AppConstants.paddingExtraLarge),
+                      // Cashier Dropdown with animation
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 1200),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: _buildCashierDropdown(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: AppConstants.paddingLarge),
 
-                    // PIN Input Section
-                    Container(
-                      constraints: const BoxConstraints(maxWidth: 450),
-                      padding: const EdgeInsets.all(AppConstants.paddingLarge),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius:
-                            BorderRadius.circular(AppConstants.radiusLarge),
-                        border: Border.all(
-                          color: AppColors.greyLight.withOpacity(0.5),
-                          width: 1,
-                        ),
+                      // Enhanced PIN Input Section
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 1400),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: Container(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 480),
+                                padding: const EdgeInsets.all(
+                                    AppConstants.paddingLarge + 8),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppColors.background,
+                                      AppColors.background.withOpacity(0.5),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                      AppConstants.radiusLarge),
+                                  border: Border.all(
+                                    color: AppColors.greyLight.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    const CustomText.medium(
+                                      text: 'Enter Your PIN',
+                                      fontSize: AppConstants.fontLarge + 2,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    const SizedBox(
+                                        height: AppConstants.paddingSmall),
+                                    const CustomText.regular(
+                                      text:
+                                          'Please input your PIN to validate yourself',
+                                      fontSize: AppConstants.fontSmall + 2,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(
+                                        height: AppConstants.paddingLarge),
+                                    _buildPinDisplay(),
+                                    const SizedBox(
+                                        height: AppConstants.paddingLarge),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      child: Column(
-                        children: [
-                          const CustomText.medium(
-                            text: 'Enter Your PIN',
-                            fontSize: AppConstants.fontLarge,
-                            color: AppColors.textPrimary,
-                          ),
-                          const SizedBox(height: AppConstants.paddingSmall),
-                          const CustomText.regular(
-                            text: 'Please input your PIN to validate yourself',
-                            fontSize: AppConstants.fontSmall,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(height: AppConstants.paddingLarge),
-                          _buildPinDisplay(),
-                          const SizedBox(height: AppConstants.paddingLarge),
-                        ],
+
+                      const SizedBox(height: AppConstants.paddingLarge),
+
+                      // Enhanced Number Pad
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 1600),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: _buildNumberPad(),
+                            ),
+                          );
+                        },
                       ),
-                    ),
+                      const SizedBox(height: AppConstants.paddingLarge),
 
-                    const SizedBox(height: AppConstants.paddingLarge),
-
-                    // Number Pad
-                    _buildNumberPad(),
-                    const SizedBox(height: AppConstants.paddingLarge),
-
-                    // Start Shift Button
-                    Container(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: CustomButton(
-                        text: 'Start Shift',
-                        onPressed: _onStartShift,
-                        height: 56,
-                        backgroundColor:
-                            _selectedCashier != null && _pin.length >= 4
-                                ? AppColors.primary
-                                : AppColors.greyLight,
+                      // Enhanced Start Shift Button
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 1800),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: Container(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 400),
+                                child: _isShifting
+                                    ? Container(
+                                        height: 56,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              AppColors.primary,
+                                              AppColors.primaryDark,
+                                            ],
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                              AppConstants.radiusMedium),
+                                        ),
+                                        child: const Center(
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                              Color>(
+                                                          AppColors.white),
+                                                ),
+                                              ),
+                                              SizedBox(width: 16),
+                                              CustomText.bold(
+                                                text: 'Starting Shift...',
+                                                fontSize:
+                                                    AppConstants.fontMedium,
+                                                color: AppColors.white,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                    : CustomButton(
+                                        text: 'Start Shift',
+                                        onPressed: _onStartShift,
+                                        height: 56,
+                                        backgroundColor:
+                                            _selectedCashier != null &&
+                                                    _pin.length >= 4
+                                                ? AppColors.primary
+                                                : AppColors.greyLight,
+                                      ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // Footer
-          Padding(
-            padding: const EdgeInsets.all(AppConstants.paddingMedium),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CustomText.regular(
-                  text: '©2025 SwiftPOS Inc. All rights reserved.',
-                  fontSize: AppConstants.fontSmall,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppConstants.paddingLarge),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PrivacyPolicyScreen(),
-                      ),
-                    );
-                  },
-                  child: const CustomText.regular(
-                    text: 'Privacy Policy',
-                    fontSize: AppConstants.fontSmall,
-                    color: AppColors.textSecondary,
+            // Footer with animation
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 2000),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppConstants.paddingMedium),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CustomText.regular(
+                          text: '©2025 SwiftPOS Inc. All rights reserved.',
+                          fontSize: AppConstants.fontSmall,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: AppConstants.paddingLarge),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PrivacyPolicyScreen(),
+                              ),
+                            );
+                          },
+                          child: const CustomText.regular(
+                            text: 'Privacy Policy',
+                            fontSize: AppConstants.fontSmall,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const CustomText.regular(
+                          text: ' | ',
+                          fontSize: AppConstants.fontSmall,
+                          color: AppColors.textSecondary,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const TermsConditionsScreen(),
+                              ),
+                            );
+                          },
+                          child: const CustomText.regular(
+                            text: 'Terms & Conditions',
+                            fontSize: AppConstants.fontSmall,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const CustomText.regular(
-                  text: ' | ',
-                  fontSize: AppConstants.fontSmall,
-                  color: AppColors.textSecondary,
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const TermsConditionsScreen(),
-                      ),
-                    );
-                  },
-                  child: const CustomText.regular(
-                    text: 'Terms & Conditions',
-                    fontSize: AppConstants.fontSmall,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCashierDropdown() {
+    final selectedCashierData = _cashiers.firstWhere(
+      (cashier) => cashier['name'] == _selectedCashier,
+      orElse: () => _cashiers.first,
+    );
+
     return Container(
-      constraints: const BoxConstraints(maxWidth: 450),
+      constraints: const BoxConstraints(maxWidth: 480),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
+        border: Border.all(color: AppColors.greyLight.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -471,31 +797,43 @@ class _LoginScreenState extends State<LoginScreen> {
                 _isDropdownExpanded = !_isDropdownExpanded;
               });
             },
-            borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+            borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
             child: Padding(
-              padding: const EdgeInsets.all(AppConstants.paddingMedium),
+              padding: const EdgeInsets.all(AppConstants.paddingMedium + 4),
               child: Row(
                 children: [
-                  // Avatar
+                  // Avatar with gradient
                   Container(
-                    width: 45,
-                    height: 45,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          AppColors.primary,
-                          AppColors.primaryDark,
+                          Color(int.parse(selectedCashierData['color']!
+                              .replaceFirst('#', '0xFF'))),
+                          Color(int.parse(selectedCashierData['color']!
+                                  .replaceFirst('#', '0xFF')))
+                              .withOpacity(0.8),
                         ],
                       ),
                       borderRadius:
                           BorderRadius.circular(AppConstants.radiusMedium),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(int.parse(selectedCashierData['color']!
+                                  .replaceFirst('#', '0xFF')))
+                              .withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Center(
                       child: const FaIcon(
                         FontAwesomeIcons.user,
-                        size: 20,
+                        size: 24,
                         color: AppColors.white,
                       ),
                     ),
@@ -507,101 +845,130 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CustomText.bold(
-                          text: _selectedCashier ?? 'Brolead',
-                          fontSize: AppConstants.fontLarge,
+                          text: selectedCashierData['name']!,
+                          fontSize: AppConstants.fontLarge + 2,
                           color: AppColors.textPrimary,
                         ),
-                        const CustomText.regular(
-                          text: '10:00 Am - 22:00 Pm',
-                          fontSize: AppConstants.fontSmall,
+                        const SizedBox(height: 2),
+                        CustomText.regular(
+                          text: selectedCashierData['time']!,
+                          fontSize: AppConstants.fontSmall + 2,
                           color: AppColors.textSecondary,
                         ),
                       ],
                     ),
                   ),
-                  // Dropdown icon
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.greyLight.withOpacity(0.3),
-                      borderRadius:
-                          BorderRadius.circular(AppConstants.radiusSmall),
-                    ),
-                    child: FaIcon(
-                      _isDropdownExpanded
-                          ? FontAwesomeIcons.chevronUp
-                          : FontAwesomeIcons.chevronDown,
-                      size: 14,
-                      color: AppColors.grey,
+                  // Dropdown icon with animation
+                  AnimatedRotation(
+                    turns: _isDropdownExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.greyLight.withOpacity(0.2),
+                        borderRadius:
+                            BorderRadius.circular(AppConstants.radiusMedium),
+                      ),
+                      child: FaIcon(
+                        FontAwesomeIcons.chevronDown,
+                        size: 16,
+                        color: AppColors.grey,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          // Dropdown items
-          if (_isDropdownExpanded)
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: AppColors.border),
-                ),
-                color: AppColors.white,
-              ),
-              child: Column(
-                children: _cashiers.skip(1).map((cashier) {
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedCashier = cashier['name'];
-                        _isDropdownExpanded = false;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppConstants.paddingMedium),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.greyLight,
-                              borderRadius: BorderRadius.circular(
-                                  AppConstants.radiusSmall),
-                            ),
-                            child: Center(
-                              child: const FaIcon(
-                                FontAwesomeIcons.user,
-                                size: 18,
-                                color: AppColors.grey,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppConstants.paddingMedium),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+          // Dropdown items with animation
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            height: _isDropdownExpanded ? null : 0,
+            child: _isDropdownExpanded
+                ? Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                            color: AppColors.greyLight.withOpacity(0.3)),
+                      ),
+                      color: AppColors.white,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(AppConstants.radiusLarge),
+                        bottomRight: Radius.circular(AppConstants.radiusLarge),
+                      ),
+                    ),
+                    child: Column(
+                      children: _cashiers.skip(1).map((cashier) {
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedCashier = cashier['name'];
+                              _isDropdownExpanded = false;
+                            });
+                          },
+                          borderRadius:
+                              BorderRadius.circular(AppConstants.radiusMedium),
+                          child: Padding(
+                            padding: const EdgeInsets.all(
+                                AppConstants.paddingMedium + 4),
+                            child: Row(
                               children: [
-                                CustomText.medium(
-                                  text: cashier['name']!,
-                                  fontSize: AppConstants.fontMedium,
-                                  color: AppColors.textPrimary,
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(int.parse(cashier['color']!
+                                            .replaceFirst('#', '0xFF'))),
+                                        Color(int.parse(cashier['color']!
+                                                .replaceFirst('#', '0xFF')))
+                                            .withOpacity(0.8),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                        AppConstants.radiusMedium),
+                                  ),
+                                  child: Center(
+                                    child: const FaIcon(
+                                      FontAwesomeIcons.user,
+                                      size: 20,
+                                      color: AppColors.white,
+                                    ),
+                                  ),
                                 ),
-                                CustomText.regular(
-                                  text: cashier['time']!,
-                                  fontSize: AppConstants.fontSmall,
-                                  color: AppColors.textSecondary,
+                                const SizedBox(
+                                    width: AppConstants.paddingMedium),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      CustomText.medium(
+                                        text: cashier['name']!,
+                                        fontSize: AppConstants.fontMedium + 2,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                      CustomText.regular(
+                                        text: cashier['time']!,
+                                        fontSize: AppConstants.fontSmall + 2,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      }).toList(),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );
@@ -609,32 +976,51 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildPinDisplay() {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
+      constraints: const BoxConstraints(maxWidth: 420),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(6, (index) {
-          return Container(
-            width: 50,
-            height: 60,
+          final isActive = index < _pin.length;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 54,
+            height: 64,
             decoration: BoxDecoration(
               border: Border.all(
-                color: index < _pin.length
+                color: isActive
                     ? AppColors.primary
-                    : AppColors.greyLight,
+                    : AppColors.greyLight.withOpacity(0.5),
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-              color: index < _pin.length
-                  ? AppColors.primary.withOpacity(0.1)
+              color: isActive
+                  ? AppColors.primary.withOpacity(0.08)
                   : AppColors.white,
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
             ),
             child: Center(
-              child: CustomText.bold(
-                text: index < _pin.length ? '•' : '',
-                fontSize: 32,
-                color: index < _pin.length
-                    ? AppColors.primary
-                    : Colors.transparent,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: CustomText.bold(
+                  key: ValueKey(isActive),
+                  text: isActive ? '•' : '',
+                  fontSize: 36,
+                  color: isActive ? AppColors.primary : Colors.transparent,
+                ),
               ),
             ),
           );
@@ -694,30 +1080,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildNumberButton(String number) {
     return InkWell(
-      onTap: () => _onNumberPressed(number),
+      onTap: () {
+        _onNumberPressed(number);
+        HapticFeedback.lightImpact();
+      },
       borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+      splashFactory: InkRipple.splashFactory,
       child: Container(
-        width: 80,
-        height: 80,
+        width: 84,
+        height: 84,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
           border: Border.all(
-            color: AppColors.greyLight,
+            color: AppColors.greyLight.withOpacity(0.5),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: CustomText.bold(
           text: number,
-          fontSize: AppConstants.fontTitle,
+          fontSize: AppConstants.fontTitle + 4,
           color: AppColors.textPrimary,
         ),
       ),
@@ -726,31 +1116,35 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildBackspaceButton() {
     return InkWell(
-      onTap: _onBackspacePressed,
+      onTap: () {
+        _onBackspacePressed();
+        HapticFeedback.lightImpact();
+      },
       borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+      splashFactory: InkRipple.splashFactory,
       child: Container(
-        width: 80,
-        height: 80,
+        width: 84,
+        height: 84,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.greyLight.withOpacity(0.3),
+          color: AppColors.error.withOpacity(0.08),
           borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
           border: Border.all(
-            color: AppColors.greyLight,
+            color: AppColors.error.withOpacity(0.2),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: AppColors.error.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: const FaIcon(
           FontAwesomeIcons.deleteLeft,
-          size: 24,
-          color: AppColors.textPrimary,
+          size: 26,
+          color: AppColors.error,
         ),
       ),
     );
